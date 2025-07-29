@@ -4,7 +4,13 @@ import time
 import json, os
 
 from patchright.sync_api import Page, expect
-from config import logger, BOSS_LOGIN_URL, BOSS_RECOMMEND_URL, BOSS_SECURITY_CHECK_URL
+from config import (
+    logger,
+    BOSS_BASE_URL,
+    BOSS_LOGIN_URL,
+    BOSS_RECOMMEND_URL,
+    BOSS_SECURITY_CHECK_URL,
+)
 
 
 class LoginManager:
@@ -18,7 +24,7 @@ class LoginManager:
         :param page: Playwright 的 Page 对象
         """
         self.page = page
-        self.base_url = BOSS_LOGIN_URL
+        self.base_url = BOSS_BASE_URL
         self.login_url = BOSS_LOGIN_URL
         self.recommend_url = BOSS_RECOMMEND_URL
         self.security_url = BOSS_SECURITY_CHECK_URL
