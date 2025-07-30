@@ -24,13 +24,13 @@
         /*.tabulator .tabulator-cell { border-right: 1px solid #4a5568; white-space: pre-wrap; }*/
 
         /* 为表格行增加底部边框，即行线 */
-        .tabulator .tabulator-row { 
+        .tabulator .tabulator-row {
             background-color: #2d3748;
             border-bottom: 1px solid #4a5568; /* 新增行线 */
         }
         /* 减少单元格的垂直内边距 (padding) */
-        .tabulator .tabulator-cell { 
-            border-right: 1px solid #4a5568; 
+        .tabulator .tabulator-cell {
+            border-right: 1px solid #4a5568;
             white-space: pre-wrap;
             padding-top: 8px;    /* 减少上内边距 */
             padding-bottom: 8px; /* 减少下内边距 */
@@ -49,6 +49,14 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        /* Toggle Switch Styles */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #48bb78;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #48bb78;
+        }
     </style>
 </head>
 <body class="p-4 sm:p-8">
@@ -60,26 +68,31 @@
             </h1>
         </header>
 
-        <div class="bg-gray-800 p-4 rounded-lg shadow-lg mb-6 flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
-            <!-- 从服务器加载 -->
+        <div class="bg-gray-800 p-4 rounded-lg shadow-lg mb-6 flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4" style="align-items: center;">
             <div class="w-full sm:w-auto flex-grow">
                 <label for="file-select" class="block text-sm font-medium text-gray-300 mb-1">从服务器加载</label>
                 <div class="flex">
                     <select id="file-select" class="block w-full bg-gray-700 border border-gray-600 text-white rounded-l-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                        <option>请选择一个文件...</option>
-                    </select>
+                        </select>
                     <button id="load-server-file" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-r-md inline-flex items-center">
                         <i data-lucide="download-cloud" class="mr-2 h-4 w-4"></i>
                         <span>加载</span>
                     </button>
                 </div>
             </div>
-            
+
+            <div class="flex items-center pt-5 sm:pt-0">
+                 <label for="auto-refresh-toggle" class="text-sm font-medium text-gray-300 mr-2">自动刷新</label>
+                 <div class="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
+                     <input type="checkbox" name="auto-refresh-toggle" id="auto-refresh-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                     <label for="auto-refresh-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                 </div>
+            </div>
+
             <div class="text-gray-400">或</div>
 
-            <!-- 从本地上传 -->
             <div class="w-full sm:w-auto">
-                <label for="file-upload" class="block text-sm font-medium text-gray-300 mb-1">从本地上传</label>
+                <label for="file-upload" class="block text-sm font-medium text-gray-300 mb-1" style="text-align: center;">从本地上传</label>
                 <label class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md inline-flex items-center cursor-pointer">
                     <i data-lucide="upload-cloud" class="mr-2 h-4 w-4"></i>
                     <span>选择文件...</span>
@@ -87,7 +100,7 @@
                 </label>
             </div>
         </div>
-        
+
         <div id="loading-indicator" class="hidden loader"></div>
         <div id="job-table" class="bg-gray-800 rounded-lg shadow-lg"></div>
     </div>
@@ -102,6 +115,11 @@
         const fileUploadInput = document.getElementById('file-upload');
         const loadingIndicator = document.getElementById('loading-indicator');
         const tableContainer = document.getElementById('job-table');
+        const autoRefreshToggle = document.getElementById('auto-refresh-toggle');
+
+        // --- Auto-Refresh Logic ---
+        let autoRefreshIntervalId = null;
+        const REFRESH_INTERVAL = 10000; // 10 seconds
 
         // --- Tabulator 表格初始化 ---
         // 自定义格式化函数，用于解析Excel的HYPERLINK公式
@@ -112,20 +130,20 @@
                 const match = cellValue.match(/=hyperlink\("([^"]+)"\s*,\s*"([^"]+)"\)/i);
                 if (match && match.length === 3) {
                     const url = match[1];
-                    const text = match[2].replace(/""/g, '"'); // 将Excel的 "" 转义变回 "
+                    const text = match[2].replace(/""/g, '"');
                     return `<a href="${url}" target="_blank" class="text-indigo-400 hover:text-indigo-300 hover:underline">${text}</a>`;
                 }
             }
-            return cellValue; // 如果不是公式，直接返回值
+            return cellValue;
         };
 
         const table = new Tabulator("#job-table", {
-            height: "70vh", // 表格高度
-            layout: "fitData", // 列宽自适应
-            movableColumns: true, // 允许拖拽列
+            height: "70vh",
+            layout: "fitData",
+            movableColumns: true,
             placeholder: "<div class='text-gray-400 p-4'>请先从上方选择一个文件加载数据</div>",
             columns: [
-                {title:"编号", formatter:"rownum", hozAlign:"center", width:70, frozen:true, hozAlign:"center", vertAlign:"middle"},
+                {title:"编号", formatter:"rownum", hozAlign:"center", width:70, frozen:true, vertAlign:"middle"},
                 {title: "获取时间", field: "获取时间", sorter: "string", hozAlign: "center", vertAlign: "middle"},
                 {title: "职位名称", field: "职位名称", sorter: "string", headerFilter: "input", hozAlign: "center", vertAlign: "middle"},
                 {title: "薪资", field: "薪资", sorter: "string", width: 150, hozAlign: "center", vertAlign: "middle"},
@@ -136,7 +154,7 @@
                 {title: "福利待遇", field: "福利待遇", sorter: "string", width: 100, formatter: "textarea",  hozAlign: "center", vertAlign: "middle"},
                 {title: "领域Tag", field: "领域tag", sorter: "string", width: 200, formatter: "textarea", hozAlign: "center", vertAlign: "middle"},
                 {title: "职位描述", field: "职位描述内容", sorter: "string", formatter: "textarea", minWidth: 300, maxWidth:550, vertAlign: "middle"},
-                {title: "JD链接", field: "JD链接", sorter: "string", formatter: hyperlinkFormatter, hozAlign: "center", width: 200,  hozAlign: "center", vertAlign: "middle"},
+                {title: "JD链接", field: "JD链接", sorter: "string", formatter: hyperlinkFormatter, hozAlign: "center", width: 200, vertAlign: "middle"},
             ],
         });
 
@@ -150,55 +168,41 @@
             loadingIndicator.classList.add('hidden');
             tableContainer.classList.remove('hidden');
         }
-
-              // 从服务器加载选定的文件数据
-        async function loadDataFromServer(filename) {
-            if (!filename || filename === '请选择一个文件...') {
-                alert('请先选择一个文件！');
-                return;
-            }
-            showLoading();
-            try {
-                const response = await fetch(`/api/data/${filename}`);
-                if (!response.ok) {
-                    throw new Error(`服务器错误: ${response.statusText}`);
-                }
-                const data = await response.json();
-                
-                // 【关键修正】先显示表格容器，再填充数据
-                hideLoading(); 
-                await table.setData(data);
-
-            } catch (error) {
-                console.error('加载数据失败:', error);
-                alert(`加载文件 ${filename} 失败！`);
-                hideLoading(); // 如果出错，也要确保隐藏加载动画
-            }
-        }
+        
         async function loadServerFiles() {
             try {
                 const response = await fetch('/api/files');
                 const files = await response.json();
-                fileSelect.innerHTML = '<option>请选择一个文件...</option>'; // 重置
+                const currentFile = fileSelect.value;
+                
+                // Clear existing options except for the placeholder
+                fileSelect.innerHTML = '<option>请选择一个文件...</option>';
+                
                 files.forEach(file => {
                     const option = document.createElement('option');
                     option.value = file;
                     option.textContent = file;
                     fileSelect.appendChild(option);
                 });
+
+                // Restore previous selection if it still exists
+                if (Array.from(fileSelect.options).some(opt => opt.value === currentFile)) {
+                    fileSelect.value = currentFile;
+                }
+
             } catch (error) {
                 console.error('加载服务器文件列表失败:', error);
-                alert('无法加载服务器文件列表，请检查后台服务是否运行。');
+                // Don't alert here to avoid spamming the user
             }
         }
-
-        // 从服务器加载选定的文件数据
-        async function loadDataFromServer(filename) {
+        
+        // Modified to accept a 'silent' flag to suppress alerts during auto-refresh
+        async function loadDataFromServer(filename, silent = false) {
             if (!filename || filename === '请选择一个文件...') {
-                alert('请先选择一个文件！');
+                if (!silent) alert('请先选择一个文件！');
                 return;
             }
-            showLoading();
+            if(!silent) showLoading();
             try {
                 const response = await fetch(`/api/data/${filename}`);
                 if (!response.ok) {
@@ -206,25 +210,23 @@
                 }
                 const data = await response.json();
                 
-                // 【关键修正】先显示表格容器，再填充数据
-                hideLoading(); 
+                if(!silent) hideLoading();
                 await table.setData(data);
 
             } catch (error) {
                 console.error('加载数据失败:', error);
-                alert(`加载文件 ${filename} 失败！`);
-                hideLoading(); // 如果出错，也要确保隐藏加载动画
+                if (!silent) alert(`加载文件 ${filename} 失败！`);
+                if(!silent) hideLoading();
             }
         }
-
-        // 从本地加载文件数据
+        
         function loadDataFromLocal(file) {
             showLoading();
             const reader = new FileReader();
             
             const processData = (data) => {
-                hideLoading(); // 关键：先显示表格容器
-                table.setData(data); // 再填充数据
+                hideLoading();
+                table.setData(data);
             };
 
             if (file.name.endsWith('.json')) {
@@ -257,15 +259,54 @@
             }
         }
 
+        function stopAutoRefresh() {
+            if (autoRefreshIntervalId) {
+                clearInterval(autoRefreshIntervalId);
+                autoRefreshIntervalId = null;
+                autoRefreshToggle.checked = false;
+            }
+        }
+
         // --- 事件绑定 ---
-        document.addEventListener('DOMContentLoaded', loadServerFiles);
+        document.addEventListener('DOMContentLoaded', () => {
+             loadServerFiles();
+             // Periodically check for new files, but less frequently.
+             setInterval(loadServerFiles, 30000); 
+        });
+
         loadServerFileBtn.addEventListener('click', () => {
+            stopAutoRefresh();
             loadDataFromServer(fileSelect.value);
         });
+
+        fileSelect.addEventListener('change', () => {
+            stopAutoRefresh();
+        });
+
         fileUploadInput.addEventListener('change', (event) => {
+            stopAutoRefresh();
             const file = event.target.files[0];
             if (file) {
                 loadDataFromLocal(file);
+            }
+        });
+
+        autoRefreshToggle.addEventListener('change', (event) => {
+            if (event.target.checked) {
+                const selectedFile = fileSelect.value;
+                if (selectedFile && selectedFile !== '请选择一个文件...') {
+                    // Immediately load data, then set the interval
+                    loadDataFromServer(selectedFile, true); 
+                    autoRefreshIntervalId = setInterval(() => {
+                        // Pass true for the 'silent' parameter to avoid alerts
+                        loadDataFromServer(fileSelect.value, true); 
+                    }, REFRESH_INTERVAL);
+                } else {
+                    alert('请先选择一个文件再开启自动刷新。');
+                    event.target.checked = false; // Reset the toggle if no file is selected
+                }
+            } else {
+                stopAutoRefresh();
             }
         });
 

@@ -26,7 +26,7 @@ class JobScraper:
         job_data = {}
         try:
             # 等待页面主要信息区域加载
-            job_page.locator("div.info-primary")
+            # job_page.locator("div.info-primary")
 
             # 定位包含职位、薪资、地点等信息的核心容器
             primary_info = job_page.locator("div.info-primary")
@@ -138,11 +138,12 @@ class JobScraper:
             # 单独添加一列原始链接，方便其他程序处理
             job_data["JD链接"] = hyperlink_formula
 
-            job_data["bossURL"] = job_url
+            job_data["bossURL"] = job_url.split("?")[0]  # 去除查询参数部分
+
             job_data["获取时间"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
             logger.info(
-                f"\n\n====成功提取职位: 【{job_data['职位名称']} - {job_data['公司']}】====\n\n"
+                f"\n\n====成功提取职位: 【{job_data['职位名称']} - {job_data['公司']} - {job_data['base地点']} - {job_data['薪资']}】====\n\n"
             )
             return job_data
 

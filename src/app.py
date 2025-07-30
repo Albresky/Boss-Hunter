@@ -1,14 +1,11 @@
 import os
 import pandas as pd
 from flask import Flask, jsonify, render_template_string, request, render_template
+from config import DATA_DIR, logger
 import json
 import re
 
 app = Flask(__name__, template_folder="templates")
-
-# --- 配置 ---
-# 设置存放CSV/JSON文件的数据目录
-DATA_DIR = "boss_data"
 
 
 @app.route("/")
@@ -23,11 +20,15 @@ def list_files():
     if not os.path.exists(DATA_DIR):
         return jsonify([])
 
+    cur_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(cur_dir, DATA_DIR)
+
     try:
         files = [
-            f for f in os.listdir(DATA_DIR) if f.endswith(".csv") or f.endswith(".json")
+            f for f in os.listdir(data_dir) if f.endswith(".csv") or f.endswith(".json")
         ]
         files.sort(reverse=True)  # 按名称倒序，最新的文件在最前面
+        logger.info(f"找到 {len(files)} 个文件: {files}")
         return jsonify(files)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
