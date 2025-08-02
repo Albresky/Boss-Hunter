@@ -4,7 +4,7 @@
 
 ![](images/dashboard.png)
 
-- **收藏职位**：基于 [Playwright](https://playwright.dev/) 自动化抓取 BOSS 直聘PC端 *“我感兴趣的” 列表中的所有职位信息
+- **收藏职位**：基于 [Playwright](https://playwright.dev/) 自动化抓取 BOSS 直聘PC端 *“我感兴趣的”* 列表中的所有职位信息
 - **Dashboard**：数据面板——展示和分析爬取到的数据
 
 
